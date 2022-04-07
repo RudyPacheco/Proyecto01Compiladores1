@@ -1,9 +1,14 @@
-/*Seccion codigo Imports Package */
 package analisisHtml;
+
+import reporteHtml.Token;
+import reporteHtml.EtiquetasReporteHtml;
+import reporteHtml.TablaSimboloHtml;
+import java.util.ArrayList;
 import java_cup.runtime.*;
 import java_cup.runtime.XMLElement;
-import tablaSimbolo.TableSimbol;
-
+import tablaSimbolo.TablaSimbolo;
+import java_cup.runtime.XMLElement;
+import objetosAnalisis.errorE;
 
  /* Codigo java del parser*/
 parser code {:   

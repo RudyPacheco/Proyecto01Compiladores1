@@ -1,12 +1,15 @@
 /*Seccion codigo Imports Package */
-package com.compiladores1.appcliente.analizadores.json;
-import com.compiladores1.appcliente.analizadores.json.sym;
-import com.compiladores1.appcliente.analizadores.json.LexerJson;
+
+package analisisJson;
+
+
+import reporteHtml.Token;
+
 import java_cup.runtime.*;
-import com.compiladores1.appcliente.analizadores.Token;
-import com.compiladores1.appcliente.tableSimbol.TableSimbol;
-import com.compiladores1.appcliente.erros.Errors;
 import java.util.ArrayList;
+import java_cup.runtime.XMLElement;
+import objetosAnalisis.errorE;
+import tablaSimbolo.TablaSimbolo;
 
  /* Codigo java del parser*/
 parser code {:   
