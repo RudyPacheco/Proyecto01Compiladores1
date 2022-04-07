@@ -1,0 +1,455 @@
+/*Seccion codigo Imports Package */
+package sintactico;
+
+
+
+import java_cup.runtime.*;
+import java.util.ArrayList;
+
+import java_cup.runtime.XMLElement;
+import lexico.LexicoJava;
+import objetosAnalisis.Token;
+import objetosAnalisis.errorE;
+import tablaSimbolo.TablaSimbolo;
+import tablaSimbolo.Variable;
+
+
+ /* Codigo java del parser*/
+parser code {:   
+/*declaracion de variables para capturar Strigns para la tabla de simbolos*/
+        private String nombreClase = "";
+        private String tipoInt = "Int";
+        private int  contCambio = 0;
+        private ArrayList<Variable> variablesAux = new ArrayList<>();
+        private TableSimbol tabla = new TableSimbol();
+        private ArrayList<errorE> errores = new ArrayList<>();
+        private boolean isProyecto1 = true;
+        
+ /* Connect this parser to a scanner!*/
+	public parser(LexerJava analizadorLexico) {
+		super(analizadorLexico);
+	}
+
+        @Override
+        public void syntax_error(Symbol tok) {
+	    try{
+	        Token token = (Token) tok.value;
+                report_error("Error Sintactico con el  Token:"+ token.getLexema()+" este no pertenece a la estructura - linea: "+token.getFila()+" - columna: "+token.getColumna() + "\n",null);
+                errores.add(new errorE(token.getLexema(),token.getFila(),token.getColumna(),"Se esperaba","Sintactico",nombreClase,isProyecto1));
+            }catch(Exception e){
+                e.printStackTrace();
+	    }	
+	}
+
+        public void noEsConstructor(Token token){
+              if(!token.getLexema().equals(nombreClase)){
+
+                     report_error("Error Sintactico con el  Token:"+ token.getLexema()+" este no pertenece a la estructura - linea: "+token.getFila()+" - columna: "+token.getColumna() + "\n",null);
+                     errores.add(new errorE(token.getLexema(),token.getFila(),token.getColumna(),"Se esperaba","Sintactico",nombreClase,isProyecto1));
+              }  
+        }
+
+
+
+    public void setTabla(TableSimbol tabla){
+        this.tabla = tabla;
+    }
+    public TableSimbol getTable(){
+        return this.tabla;
+    }
+
+     public ArrayList<errorE> getErrores() {
+        return errores;
+    }
+
+    public void setErrores(ArrayList<errorE> errores) {
+        this.errores = errores;
+    } 
+
+     public boolean isIsProyecto1() {
+        return isProyecto1;
+    }
+
+    public void setIsProyecto1(boolean isProyecto1) {
+        this.isProyecto1 = isProyecto1;
+    }
+    
+:};
+/*seccion de Terminales*/ 
+
+terminal Token ENTERO, DECIMAL, LLAVEA, LLAVEC, PARENTESISA, PARENTESISC, PUNTO,COMA,PUNTOCOMA, DEFAULT;
+terminal Token DOPUNTO, MENOS, MAS, MULTIPLICACION, DIVISION, IGUAL,EQUALS,OR,AND,MENORQ,MAYORQ,MAYOROI,MENOROI, CASO;
+terminal Token NOTEQUALS, IMPORT, ID, PRIVATE, PUBLIC, PROTECTED, FINAL, CLASS, INT, BOOLEAN, TRUE, CADENA;
+terminal Token STRING, NEGATION, CHAR, CARACTER, DOUBLE, IF, ELSE, FOR, WHILE, DO, SWITCH, BREAK, RETURN, NEW, FALSE;
+
+
+/*seccion de No Terminales*/
+non terminal inicio, item_punto, importando, definicion_clase, definicion_metodo, definicion_variable, variables, items_coma, items, fin_asignar, asignacion;
+non terminal tipo, visibilidad, sentencias, sentencia, sentencias_global, sentencia_global, definicion_if, definicion_ifelse, definicion_for, acceso_termin_var_metod;
+non terminal comodin_clase, comodin_Metodo, comodin_parametro,comodin_Consturctor;
+non terminal definicion_while, definicion_dowhile, definicion_switch, cases, caso_sw, factor_casos, terminales, salida, retorno, condition, logica, sentencias_switch;
+non terminal agrupacion, definicion_and, definicion_or, condicion_for, operacion_for, constructor, parametros, llamada_metodo, parametros_llamada;
+non terminal recurcion_new, incremento, mas_igual, var_llamada_asigancion, idOpcion, siguiente, var_iterador, expresion, terminal_production, expresion_produccion, terminal_produccion, f_terminal;
+
+
+
+
+start with  inicio;
+ 
+ 
+ //inicio
+ inicio ::= importando definicion_clase
+        |
+        | error LLAVEC
+        ;
+
+//importaciones
+ importando ::= IMPORT ID PUNTO item_punto 
+        | IMPORT ID PUNTOCOMA importando      {::}
+        |
+        | error PUNTOCOMA                     {::}
+        ;
+
+
+ item_punto ::= ID PUNTO item_punto
+        | ID PUNTOCOMA importando             {::}                
+        | MULTIPLICACION PUNTOCOMA importando             {::}
+        | error PUNTOCOMA                     {::}
+        ;
+
+//Definicion de clase
+ definicion_clase ::= visibilidad comodin_clase LLAVEA sentencias_global LLAVEC    {:  tabla.tosting();:}
+        | FINAL comodin_clase LLAVEA sentencias_global LLAVEC               {:  tabla.tosting();:}
+        | comodin_clase LLAVEA sentencias_global LLAVEC                     {:  tabla.tosting();:}
+        ;
+
+comodin_clase ::= CLASS ID:nomClase                                        {: nombreClase = nomClase.getLexema(); tabla.capturarClase(nombreClase);:}       
+                ;
+
+
+//definicion de clase o metodo
+ definicion_metodo ::= visibilidad comodin_Metodo LLAVEA sentencias  LLAVEC                      
+        | error  LLAVEC                    {::}
+        ;
+comodin_Metodo ::= tipo ID:nomMet PARENTESISA parametros PARENTESISC                   {: tabla.capturarMetodo(variablesAux,nomMet.getLexema(),tipoInt); variablesAux.clear(); :}
+                | tipo ID:nomMet PARENTESISA  PARENTESISC                             {: tabla.capturarMetodo(nomMet.getLexema(),tipoInt);:}
+                | ID:tipMetod ID:nomMet PARENTESISA  PARENTESISC                     {: tabla.capturarMetodo(nomMet.getLexema(),tipMetod.getLexema());:} 
+                | ID:tipMetod ID:nomMet PARENTESISA  parametros PARENTESISC          {: tabla.capturarMetodo(variablesAux,nomMet.getLexema(),tipMetod.getLexema()); variablesAux.clear();:} 
+        ;
+
+//deficion de variable o asignacion
+ definicion_variable ::= visibilidad variables         {: tabla.actualizarVar(true,contCambio); contCambio = 0;:} 
+        | variables                                    {: tabla.actualizarVar(true,contCambio); contCambio = 0;:} 
+        | FINAL variables                              {: tabla.actualizarVar(true,contCambio); contCambio = 0;:} 
+        | visibilidad ID:tipoVar items_coma            {: tabla.actualizarVar(true,contCambio,tipoVar.getLexema()); contCambio = 0;:} 
+        | FINAL ID:tipoVar items_coma                  {: tabla.actualizarVar(true,contCambio,tipoVar.getLexema()); contCambio = 0;:} 
+        | ID:tipoVar items_coma                        {: tabla.actualizarVar(true,contCambio,tipoVar.getLexema()); contCambio = 0;:} 
+        ;
+ 
+
+ variables ::= tipo items_coma
+        ; 
+
+//items consecutivos
+ items_coma ::= ID:nomVar items                                       {:tabla.capturarVariableIndividual(nomVar.getLexema(), tipoInt); contCambio++;:}                    
+                | error  PUNTOCOMA                               
+        ;
+
+//varias asignaciones
+ items ::= IGUAL asignacion PUNTOCOMA
+        | IGUAL asignacion COMA items_coma
+        | COMA items_coma
+        | PUNTOCOMA
+        | error  ID                                              {::} 
+        ; 
+
+//palabra final
+ fin_asignar ::= FINAL
+        | 
+        ; 
+
+//asignacion
+ asignacion ::= condition
+            | NEW ID PARENTESISA parametros_llamada PARENTESISC
+            | NEW ID PARENTESISA  PARENTESISC
+            | error  PUNTOCOMA                              {::} 
+        ; 
+
+//tipo
+ tipo ::= INT                                   {:tipoInt = "int";:}                     
+        | BOOLEAN                               {:tipoInt = "boolean";:}                     
+        | DOUBLE                                {:tipoInt = "double";:}                     
+        | STRING                                {:tipoInt = "String";:}                     
+        | CHAR                                  {:tipoInt = "char";:}                     
+        ; 
+
+//visibilidad
+ visibilidad ::= PUBLIC fin_asignar
+                | PROTECTED fin_asignar
+                | PRIVATE fin_asignar
+                ; 
+        
+// sentencias
+ sentencias ::= sentencia sentencias
+        | 
+        | error  sentencias                              {::} 
+        ;
+
+//globales
+ sentencias_global ::= sentencia_global sentencias_global
+        |
+        ;
+
+
+ sentencia_global ::= constructor                    
+        | definicion_variable
+        | definicion_metodo                                
+        ;
+
+//sentencias
+ sentencia ::=  definicion_if                              
+        | definicion_ifelse                              
+        | definicion_while                                
+        | definicion_dowhile                             
+        | definicion_for                                   
+        | FINAL variables                               {:tabla.actualizarVar(false,contCambio); contCambio = 0;:}                         
+        | salida                                    
+        | variables                                     {:tabla.actualizarVar(false,contCambio); contCambio = 0;:}
+        | ID idOpcion
+        | ID:tipoVar items_coma                        {:tabla.actualizarVar(false,contCambio,tipoVar.getLexema()); contCambio = 0;:}
+        | definicion_switch                               
+        | FINAL ID:tipoVar items_coma                  {:tabla.actualizarVar(false,contCambio,tipoVar.getLexema()); contCambio = 0;:}                  
+        ;
+
+idOpcion ::= incremento                
+            | var_llamada_asigan mas_igual asignacion PUNTOCOMA      
+            | PARENTESISA PARENTESISC var_llamada_asigan mas_igual asignacion PUNTOCOMA 
+            | PARENTESISA parametros_llamada PARENTESISC var_llamada_asigan mas_igual asignacion PUNTOCOMA 
+            | mas_igual asignacion PUNTOCOMA                      
+            | llamada_metodo PUNTOCOMA
+            | PARENTESISA  PARENTESISC PUNTOCOMA
+            | PARENTESISA parametros_llamada PARENTESISC PUNTOCOMA
+            | PARENTESISA  PARENTESISC llamada_metodo PUNTOCOMA
+            | PARENTESISA parametros_llamada PARENTESISC llamada_metodo PUNTOCOMA
+            ;
+
+var_llamada_asigan ::=  PUNTO ID PARENTESISA  PARENTESISC var_llamada_asigan
+                    | PUNTO ID PARENTESISA parametros_llamada  PARENTESISC var_llamada_asigan
+                    | PUNTO ID var_llamada_asigan
+                    | PUNTO ID
+                    |  error  sentencias                              {::} 
+                    ;
+
+
+mas_igual ::= IGUAL
+        | MAS IGUAL
+        ;
+
+incremento ::= MAS MAS PUNTOCOMA                 
+        | MENOS MENOS PUNTOCOMA                 
+        | var_llamada_asigan MAS MAS PUNTOCOMA
+        | var_llamada_asigan MENOS MENOS PUNTOCOMA
+        ;
+
+//if
+ definicion_if ::= IF PARENTESISA condition  PARENTESISC LLAVEA sentencias LLAVEC 
+        ;
+
+//if else
+ definicion_ifelse ::= definicion_if ELSE LLAVEA sentencias LLAVEC 
+        ;
+
+//for
+ definicion_for ::= FOR PARENTESISA condicion_for PARENTESISC  LLAVEA sentencias LLAVEC 
+        ;
+
+//while
+ definicion_while ::= WHILE PARENTESISA condition PARENTESISC  LLAVEA sentencias LLAVEC 
+        ;
+
+//do while
+ definicion_dowhile ::= DO LLAVEA sentencias LLAVEC WHILE PARENTESISA condition PARENTESISC PUNTOCOMA
+        ;
+
+//switch
+ definicion_switch ::= SWITCH PARENTESISA ID PARENTESISC LLAVEA cases LLAVEC
+        ;
+
+
+ cases ::= caso_sw salida cases
+        | caso_sw cases
+        |
+        | error  CASO                              {::} 
+        ;
+  
+ caso_sw ::= CASO agrupacion DOPUNTO sentencias_switch           
+            | DEFAULT DOPUNTO sentencias_switch                  
+            ;
+
+sentencias_switch ::= factor_casos sentencias_switch
+        | 
+        ;            
+
+factor_casos ::=  definicion_if                                    
+        | definicion_ifelse                                       
+        | definicion_while                                          
+        | definicion_dowhile                                     
+        | definicion_for                                           
+        | FINAL variables                               {:tabla.actualizarVar(false,contCambio); contCambio = 0;:}                                 
+        | variables                                     {:tabla.actualizarVar(false,contCambio); contCambio = 0;:}
+        | ID idOpcion
+        | ID:tipoVar items_coma                        {:tabla.actualizarVar(false,contCambio,tipoVar.getLexema()); contCambio = 0;:}
+        | definicion_switch
+        | FINAL ID:tipoVar items_coma                   {:tabla.actualizarVar(false,contCambio,tipoVar.getLexema()); contCambio = 0;:}
+        ;
+
+ terminales ::= ID
+                | ID acceso_termin_var_metod
+                | ID PARENTESISA  PARENTESISC
+                | ID PARENTESISA parametros_llamada PARENTESISC
+                | ID PARENTESISA  PARENTESISC acceso_termin_var_metod
+                | ID PARENTESISA parametros_llamada PARENTESISC acceso_termin_var_metod
+                | ENTERO
+                | DECIMAL
+                | CARACTER
+                | CADENA 
+                ;
+
+acceso_termin_var_metod ::=  PUNTO ID PARENTESISA  PARENTESISC acceso_termin_var_metod
+                    | PUNTO ID PARENTESISA parametros_llamada PARENTESISC acceso_termin_var_metod
+                    | PUNTO ID acceso_termin_var_metod
+                    | PUNTO ID
+                    | PUNTO ID PARENTESISA parametros_llamada  PARENTESISC 
+                    | PUNTO ID PARENTESISA  PARENTESISC 
+                    | error  PARENTESISC                              {::} 
+                    ;
+
+//punto y coma 
+ salida ::= BREAK PUNTOCOMA
+        | RETURN retorno PUNTOCOMA
+        ;
+
+//return
+ retorno ::= condition
+        |   
+        ;
+
+ condition ::=  logica                          
+            | definicion_and                           
+            | definicion_or                            
+            | NEGATION definicion_and
+            | NEGATION definicion_or
+            | NEGATION logica
+            | error  PARENTESISC                              {::} 
+            ;
+
+
+ logica ::= agrupacion MAYORQ agrupacion
+            | agrupacion MENORQ agrupacion
+            | agrupacion MAYOROI agrupacion
+            | agrupacion MENOROI agrupacion
+            | agrupacion NOTEQUALS agrupacion
+            | agrupacion EQUALS agrupacion
+            | TRUE
+            | FALSE
+            | expresion
+            | CADENA PUNTO PARENTESISA PARENTESISC
+            | CADENA PUNTO PARENTESISA parametros_llamada PARENTESISC
+            ;
+
+
+ agrupacion ::= expresion
+            ;
+
+
+ expresion ::= terminal_production expresion_produccion
+            ;
+
+ expresion_produccion ::= MAS terminal_production expresion_produccion
+        | MENOS terminal_production expresion_produccion
+        |
+        ;
+
+ terminal_production ::= f_terminal terminal_produccion
+        ;
+
+ terminal_produccion ::= MULTIPLICACION f_terminal terminal_produccion
+        |  DIVISION f_terminal terminal_produccion
+        |
+        ;
+
+f_terminal ::= PARENTESISA expresion PARENTESISC
+        | terminales 
+        ;
+
+
+
+ definicion_and ::= logica AND logica
+            | logica AND logica AND condition
+            | logica AND logica OR condition
+            ;
+
+
+ definicion_or ::= logica OR logica
+            | logica OR logica OR condition
+            | logica OR logica AND condition
+            ;
+
+
+ condicion_for ::= var_iterador ID  IGUAL ID PUNTOCOMA condition PUNTOCOMA operacion_for
+            | var_iterador ID  IGUAL ENTERO PUNTOCOMA condition PUNTOCOMA operacion_for
+            | var_iterador ID  IGUAL DECIMAL PUNTOCOMA condition PUNTOCOMA operacion_for
+            ;
+
+var_iterador ::= INT
+            | DOUBLE
+            |
+            ;
+
+
+operacion_for ::= ID MAS MAS
+            | ID MENOS MENOS
+            | ID IGUAL condition
+            | ID MAS IGUAL condition
+            | ID MENOS IGUAL condition
+            ;
+
+
+constructor ::= visibilidad comodin_Consturctor LLAVEA sentencias LLAVEC
+                | comodin_Consturctor LLAVEA sentencias LLAVEC
+                ;
+
+comodin_Consturctor ::= ID:nomMet PARENTESISA parametros PARENTESISC              {: noEsConstructor(nomMet); tabla.capturarMetodo(variablesAux,nomMet.getLexema(),"Constructor"); variablesAux.clear(); :}
+                | ID:nomMet PARENTESISA  PARENTESISC                           {: noEsConstructor(nomMet); tabla.capturarMetodo(nomMet.getLexema(),"Constructor");:}                       
+                ;
+
+//parametros
+parametros ::= comodin_parametro
+            | comodin_parametro COMA parametros
+            | error  PARENTESISC                              {::} 
+            ;
+comodin_parametro ::= tipo ID:nomPar              {: variablesAux.add(new Variable(nomPar.getLexema(),tipoInt));:}
+                | ID:tipoPar ID:nomPar       {: variablesAux.add(new Variable(nomPar.getLexema(),tipoPar.getLexema()));:}
+                ;
+
+//llamada funciones
+llamada_metodo ::= PUNTO ID PARENTESISA  PARENTESISC llamada_metodo
+                | PUNTO ID PARENTESISA parametros_llamada PARENTESISC llamada_metodo
+                | PUNTO ID llamada_metodo
+                | PUNTO ID PARENTESISA parametros_llamada  PARENTESISC 
+                | PUNTO ID PARENTESISA  PARENTESISC 
+                ;
+
+/*gramatica para los parametros de las llamadas*/
+parametros_llamada ::= condition COMA parametros_llamada
+            | condition
+            | NEW recurcion_new
+            ;
+
+recurcion_new ::= ID PARENTESISA parametros_llamada PARENTESISC siguiente
+                | ID PARENTESISA  PARENTESISC siguiente
+                ;
+
+siguiente ::= COMA parametros_llamada
+            |
+            ;

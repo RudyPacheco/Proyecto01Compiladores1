@@ -38,10 +38,6 @@ public class abrirArchivo {
                 if (archivo.getName().endsWith("copy")) {
                     //abrirIndividual(archivo);
                     leerFichero(archivo);
-                    System.out.println("---------Json----------");
-                    System.out.println(json);
-                    System.out.println("----------def----------");
-                    System.out.println(def);
                     correcto = true;
                 } else {
                     JOptionPane.showMessageDialog(null, "Archivo incompatible");

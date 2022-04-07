@@ -370,6 +370,7 @@ public class ventanaResultados extends javax.swing.JFrame {
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
         // TODO add your handling code here:
         jTextAreaConsolaDef.setText("");
+        jPanel2.removeAll();
         Reader reader = new StringReader(jTextAreaDef.getText());
         LexicoHtml lexer = new LexicoHtml(reader);
         HtmlSintactico parser = new HtmlSintactico(lexer);
